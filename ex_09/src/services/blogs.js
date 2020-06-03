@@ -16,6 +16,11 @@ const create = async newObject => {
     const response = await axios.post(baseUrl, newObject, config)
     return response.data
 }
+const comment = async (id, comment) => {
+    console.log("COMMENT BLOG", id, comment )
+    const response = await axios.post(baseUrl + "/" + id + "/comments", {comment})
+    return response.data
+}
 
 const update = async (obj) => {
     console.log("UPDATE BLOG", obj)
@@ -34,4 +39,4 @@ const sort = (blogs) => {
     blogs.sort((a, b) => (  b.likes - a.likes )  )
 
 }
-export default { getAll, create, update, remove, setToken, sort }
+export default { getAll, create, update, remove, setToken, comment, sort }

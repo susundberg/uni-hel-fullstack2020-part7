@@ -1,46 +1,70 @@
-import React, { useState } from 'react'
+import React from 'react'
+import { connect } from 'react-redux'
+import { Link } from "react-router-dom"
+
+import { Table, Button, Form } from 'react-bootstrap'
+
+
 import Togglable from './Toggable'
-import PropTypes from 'prop-types'
+import { createBlog, likeBlog, removeBlog, commentBlog } from '../reducers/blogs'
 
-const Blog = ({ blog, onLike, onRemove, user }) => {
-    const [expanded, setExpand] = useState(false)
 
-    const blogStyle = {
-        paddingTop: 10,
-        paddingLeft: 2,
-        border: 'solid',
-        borderWidth: 1,
-        marginBottom: 5
+
+const CommentViewR = (props) => {
+
+    const onSubmitRaw = (event) => {
+        event.preventDefault()
+        const comment = event.target.comment.value
+        console.log("Comment;", comment)
+        props.onComment(props.blog, comment)
     }
 
+    return (
+        <div id="comments">
+            <ul>
+                {props.blog.comments.map((x, i) => (<li key={i}> {x} </li>))}
+            </ul>
+            <Form onSubmit={onSubmitRaw} >
+                <Form.Control type="text" name="comment" />
+                < Button type="submit" > Comment </Button>
+            </Form>
 
 
-    const blogUser = blog.user ? blog.user.name : "?"
-    // console.log("blog", blogUser, blog.title)
-    if (expanded) {
-        return (
-            <div style={blogStyle} className="blog blog-extended">
-                <ul>
-                    <li> Title: {blog.title} </li>
-                    <li> Author: {blog.author} </li>
-                    <li> Url: {blog.url} </li>
-                    <li> Likes: {blog.likes} </li>
-                    <li> Added by: {blogUser} </li>
-                </ul>
-                <button onClick={() => { setExpand(false) }}>hide</button>
-                <button onClick={() => { onLike(blog) }}>like</button>
-                {user.username === blog.user.username && <button onClick={() => { onRemove(blog) }}>remove</button>}
+        </div>)
 
-            </div>
-        )
+}
 
-    } else {
-        return (
-            <div style={blogStyle} className="blog blog-small">
-                {blog.title} by {blog.author} <button onClick={() => { setExpand(true) }}>show</button>
-            </div>
-        )
-    }
+const CommentView = connect(
+    () => ({}),
+    { onComment: commentBlog }
+)(CommentViewR)
+
+const BlogDetail = ({ blog, user, onLike, onRemove, onHide }) => (
+    <div className="blog blog-extended">
+        <Table striped>
+            <tr><td> Title: </td><td> {blog.title} </td></tr>
+            <tr><td> Author: </td><td>{blog.author} </td></tr>
+            <tr><td> Url: </td><td>{blog.url}</td></tr>
+            <tr><td> Likes: </td><td>{blog.likes} </td></tr>
+            <tr><td> Added by: </td><td>{blog.user ? blog.user.name : "?"} </td></tr >
+        </Table >
+        {onHide ? <Button onClick={() => { onHide(false) }}>hide</Button> : <div />}
+        <Button onClick={() => { onLike(blog) }}>like</Button>
+        {onRemove && (user.username === blog.user.username) && <Button onClick={() => { onRemove(blog) }}>remove</Button>}
+        <h3> Comments </h3>
+        <CommentView blog={blog} />
+    </div >
+)
+
+
+const Blog = ({ blog }) => {
+    return (
+        <tr>
+            <td> <Link to={'/blogs/' + blog.id}> {blog.title} </Link> </td>
+            <td> {blog.author} </td>
+        </tr>
+    )
+
 }
 
 const BlogForm = ({ onSubmit }) => {
@@ -49,29 +73,40 @@ const BlogForm = ({ onSubmit }) => {
         const title = event.target.btitle.value
         const author = event.target.author.value
         const url = event.target.url.value
-
         onSubmit(title, author, url)
     }
 
     return (
-        <form onSubmit={onSubmitRaw} >
+        <Form onSubmit={onSubmitRaw} >
             {
                 ["btitle", "author", "url"].map((x) => (
-                    <div key={x}> {x} <input type="text" name={x} /></div>
+                    <div key={x}> <Form.Label> {x} </Form.Label> <Form.Control type="text" name={x} /></div>
                 ))
             }
-
-            < button type="submit" > Submit</button>
-        </form >)
+            < Button type="submit" > Submit</Button>
+        </Form >)
 
 }
+const BlogSingleViewR = (props) => {
+    console.log("Blogs single Props", props)
+    return (<BlogDetail user={props.user} blog={props.blog} onLike={props.likeBlog} />)
+}
 
-const BlogView = ({ blogs, onSubmit, onLike, onRemove, user }) => {
+const BlogViewR = (props) => {
     const blogFormRef = React.createRef()
 
     const onSubmitWithHide = (title, author, url) => {
         blogFormRef.current.toggleVisibility()
-        return onSubmit(title, author, url)
+        props.createBlog({ title, author, url })
+
+    }
+
+    const onRemoveWithConfirm = (blog) => {
+
+        if (window.confirm(`Really remove blog ${blog.title} by ${blog.author}?`) === false)
+            return
+
+        props.removeBlog(blog)
     }
 
     return (
@@ -82,20 +117,30 @@ const BlogView = ({ blogs, onSubmit, onLike, onRemove, user }) => {
 
             <h2> Existing Blogs </h2>
             <div id="blogs">
-                {blogs.map((b) => (<Blog blog={b} key={b.id} onRemove={onRemove} onLike={onLike} user={user} />))}
+                <Table striped>
+                    <tbody>
+                        {props.blogs.map((b) => (<Blog blog={b} key={b.id} onRemove={onRemoveWithConfirm} onLike={props.likeBlog} user={props.user} />))}
+                    </tbody>
+                </Table>
             </div>
         </div >
 
     )
 }
 
-BlogView.propTypes = {
-    blogs: PropTypes.array.isRequired,
-    onSubmit: PropTypes.func.isRequired,
-    onLike: PropTypes.func.isRequired,
-    onRemove: PropTypes.func.isRequired,
-    user: PropTypes.object.isRequired
+const mapStateToProps = (state) => {
+    return { user: state.user, blogs: state.blogs }
 }
 
-export default BlogView
-export { Blog, BlogForm }
+const BlogView = connect(
+    mapStateToProps,
+    { createBlog, likeBlog, removeBlog }
+)(BlogViewR)
+
+const BlogSingleView = connect(
+    (state, props) => ({ user: state.user, blog: state.blogs.find(x => (x.id === props.blogId)) }),
+    { likeBlog }
+)(BlogSingleViewR)
+
+
+export { BlogView, BlogSingleView }

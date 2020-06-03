@@ -1,40 +1,60 @@
-import React, { useState } from 'react'
-import PropTypes from 'prop-types'
+import React from 'react'
+import { connect } from 'react-redux'
+import { login, logout } from '../reducers/user'
 
-const LoginForm = ({ onLogin }) => {
-    const [username, setUsername] = useState('')
-    const [password, setPassword] = useState('')
+
+import { Button, Form } from 'react-bootstrap'
+
+const LoginFormR = (props) => {
 
     const onSubmit = async (event) => {
         event.preventDefault()
-        setUsername('')
-        setPassword('')
-        onLogin(username, password)
 
+        const username = event.target.username.value
+        const password = event.target.password.value
+        console.log("Login", username, password)
+        props.login(username, password)
     }
 
     return (
         <div>
             <h2>Please Login</h2>
-            <form onSubmit={onSubmit}>
-                <div> username
-                    <input type="text" value={username} name="username" onChange={({ target }) => setUsername(target.value)} />
-                </div>
-                <div> password
-                    <input type="password" value={password} name="password" onChange={({ target }) => setPassword(target.value)} />
-                </div>
-                <button name="submit" type="submit">login</button>
-            </form>
+            <Form onSubmit={onSubmit}>
+                <Form.Label>username</Form.Label>
+                <Form.Control type="text" name="username" />
+
+                <Form.Label> password </Form.Label>
+                <Form.Control type="password" name="password" />
+
+                <Button name="submit" type="submit">login</Button>
+            </Form>
         </div>)
 
 }
 
-const UserView = ({ user, onLogout }) => (
-    <div> Logged in as: {user.name} ({user.username}) <button name="logout" onClick={onLogout}>logout</button> </div>
-)
+const LoginInfoR = (props) => {
 
-LoginForm.propTypes = {
-    onLogin: PropTypes.func.isRequired
+    const padding = {
+        paddingRight: 5,
+        display: 'table-cell',
+    }
+    return (
+        <div style={padding}> Logged in as: {props.user.name} ({props.username}) <Button name="logout" onClick={props.logout}>logout</Button> </div>
+    )
 }
 
-export { UserView, LoginForm }
+const mapStateToProps = (state) => (state.user)
+
+const LoginForm = connect(
+    mapStateToProps,
+    { login, }
+)(LoginFormR)
+
+const LoginInfo = connect(
+    mapStateToProps,
+    { logout }
+)(LoginInfoR)
+
+
+
+export { LoginInfo, LoginForm }

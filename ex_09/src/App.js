@@ -1,14 +1,98 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
+import { connect } from 'react-redux'
+import { Switch, Route, Link, useRouteMatch } from "react-router-dom"
 
-import BlogView from './components/Blog'
-import { UserView, LoginForm } from './components/Login'
-import MessageView from './components/Message'
-import blogService from './services/blogs'
-import loginService from './services/login'
+import { Navbar, Nav } from 'react-bootstrap'
+
+
+import { BlogSingleView, BlogView } from './components/Blog'
+import { LoginInfo, LoginForm } from './components/Login'
+import { UserView, UserViewSingle } from './components/User'
+import Notification from './components/Notification'
+
+import { initBlogs } from './reducers/blogs'
+import { initUser } from './reducers/user'
 
 import './App.css'
 
-const App = () => {
+const Menu = () => {
+
+
+    return (
+        <Navbar >
+            <Navbar.Brand > BLOGAPP </Navbar.Brand>
+            <Nav.Link as="span" ><Link to='/' >Blogs</Link></Nav.Link>
+            <Nav.Link as="span" ><Link to='/users' >Users</Link></Nav.Link>
+            <Nav.Link as="span"><LoginInfo /></Nav.Link>
+        </Navbar>
+    )
+}
+
+const App = (props) => {
+
+    useEffect(() => {
+        props.initUser()
+    })
+
+    useEffect(() => {
+        if (props.user) {
+            props.initBlogs()
+        }
+    }, [props])
+
+    console.log("Props is", props)
+
+
+    let userMatch = useRouteMatch('/users/:id')
+    let blogMatch = useRouteMatch('/blogs/:id')
+
+    const makeMatch = (x) => (x ? x.params.id : null)
+
+    userMatch = makeMatch(userMatch)
+    blogMatch = makeMatch(blogMatch)
+
+    if (props.user === null) {
+        return (<div> <Notification /> <LoginForm /> </div>)
+    }
+
+    return (
+        <div id="appmain" className="container" >
+            <Menu />
+            <Notification />
+            <Switch>
+                <Route path="/users/:id">
+                    <UserViewSingle userId={userMatch} />
+                </Route>
+                <Route path="/users/">
+                    <UserView />
+                </Route>
+                <Route path="/blogs/:id">
+                    <BlogSingleView blogId={blogMatch} />
+                </Route>
+                <Route path="/">
+                    <BlogView />
+                </Route>
+            </Switch>
+        </div>
+
+    )
+}
+const mapStateToProps = (state) => {
+
+    const user = state.user
+
+    return { user: user.username }
+}
+const mapDispatchToProps = { initBlogs, initUser }
+
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps,
+)(App)
+
+
+
+/*
     const [blogs, setBlogs] = useState([])
 
     const [user, setUser] = useState(null)
@@ -136,5 +220,4 @@ const App = () => {
         </div>
     )
 }
-
-export default App
+*/
